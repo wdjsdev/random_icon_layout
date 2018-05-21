@@ -57,6 +57,7 @@ function RandomIconPlacer()
 	var numOfOutputs;
 
 	var useRandomColors;
+	var randomSwatchGroup;
 
 	promptUserForPrefs();
 
@@ -109,7 +110,8 @@ function RandomIconPlacer()
 		var w = new Window("dialog");
 			var comboGroup = w.add("group");
 				var topText = comboGroup.add("statictext",undefined, "Enter the number of combinations needed.");
-				var comboInput = comboGroup.add("editText", undefined, "50-200");
+				var comboInput = comboGroup.add("editText", undefined, "50");
+					comboInput.active = true;
 			var randomColorGroup = w.add("group");
 				// var colorText = randomColorGroup.add("statictext", undefined, "Random Colors?");
 				var colorInput = randomColorGroup.add("checkbox",undefined,"Use Random Colors?")
@@ -149,11 +151,14 @@ function RandomIconPlacer()
 		var icons = getRandomIcons(targetLength);
 		var dest = exportLayer.groupItems.add();
 
-		// if()
+		if(useRandomColors)
+		{
+			createRandomSwatches(targetLength);
+		}
 
 
 		dest.name = "Group_" + (seq + 1);
-		var curIcon,curTarget,curSettings;
+		var curIcon,curTarget,curSettings,curColor;
 		for(var x=0,len=settings.length;x<len;x++)
 		{
 			curSettings = settings[x];
@@ -164,14 +169,23 @@ function RandomIconPlacer()
 
 			curIcon.rotate(curSettings.rotation);
 
-			if(!setColor(curIcon,curSettings.fillColor,"fill"))
+			if(useRandomColors)
 			{
-				errorItems.push(icons[x]);
+				curColor = randomSwatchGroup.getAllSwatches()[getRandom(0,targetLength-1)];
+
+				if(curSettings.fillColor)
+				{
+					setColor(curIcon,curColor,"fill");
+				}
+				if(curSettings.strokeColor)
+				{
+					setColor(curIcon,curColor,"stroke");
+				}
 			}
-			
-			if(!setColor(curIcon,curSettings.strokeColor,"stroke"))
+			else
 			{
-				errorItems.push(icons[x]);
+				setColor(curIcon,curSettings.fillColor,"fill");
+				setColor(curIcon,curSettings.strokeColor,"stroke");
 			}
 			
 			if(curSettings.opacity)
@@ -390,7 +404,7 @@ function RandomIconPlacer()
 				var files = homeFolder.getFiles();
 				for(var x= files.length-1; x>=0 ;x--)
 				{
-					$.writeln("files[x].name = " + files[x].name);
+					// $.writeln("files[x].name = " + files[x].name);
 					try
 					{
 						if(user.indexOf("will.dowling") === -1)
@@ -588,7 +602,6 @@ function RandomIconPlacer()
 	function createRandomSwatches(num)
 	{
 
-		var randomSwatchGroup;
 		try
 		{
 			randomSwatchGroup = docRef.swatchGroups["Random_Color_Group"];
@@ -620,8 +633,6 @@ function RandomIconPlacer()
 				newSpotColor.spot = newSpot;
 
 				randomSwatchGroup.addSwatch(swatches[newSpot.name]);
-
-
 		}
 	}
 
