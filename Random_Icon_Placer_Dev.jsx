@@ -4,6 +4,7 @@ function RandomIconPlacer()
 	var layers = docRef.layers;
 	var swatches = docRef.swatches;
 	var expState;
+	var logFile,logTxt = "";
 	var settings = [];
 
 	var errorList = [];
@@ -17,6 +18,20 @@ function RandomIconPlacer()
 	}
 
 
+	if($.os.match('Windows'))
+	{
+		homeFolder = Folder("C:/Program%20Files/");
+		expFileFolder = Folder("C:/Program%20Files/Adobe_Helpers/");
+		var user = $.getenv("USERNAME")
+	}
+	else
+	{
+		homeFolder = Folder("~");
+		expFileFolder = Folder("~/Documents/Adobe_Helpers");
+		var user = $.getenv("USER")
+	}
+
+
 
 
 	var exportDest = getExportDest();
@@ -25,6 +40,10 @@ function RandomIconPlacer()
 	{
 		return false;
 	}
+
+	logFile = File(exportDest.fsName + "/log.txt");
+
+	log("exportDest.fsName = " + exportDest.fsName);
 
 	//Save Options:
 		var EPS_OPTS = new EPSSaveOptions();
@@ -38,8 +57,17 @@ function RandomIconPlacer()
 
 
 	//jpg export action variables
-	var destStr = decodeURI(exportDest.fsName);
-	var actionFileDestStr = Folder.desktop + "/MyAction.aia";
+	if(user === "will.dowling")
+	{
+		var actionFileDestStr = Folder.desktop + "/MyAction.aia";
+		var destStr = "/Volumes/Macintosh HD" + decodeURI(exportDest.fsName);
+		alert(destStr);
+	}
+	else
+	{	
+		var actionFileDestStr = exportDest.fsName + "/MyAction.aia";
+		destStr = decodeURI(exportDest.fsName);
+	}
 	var actionFile = File(actionFileDestStr);
 
 
@@ -67,7 +95,7 @@ function RandomIconPlacer()
 		return false;
 	}
 
-	loadExportAction();
+	// loadExportAction();
 
 	getInitialIconProperties();
 
@@ -79,7 +107,11 @@ function RandomIconPlacer()
 
 	exportGroups();
 
-	unloadExportAction();
+	// unloadExportAction();
+
+	initLayer.visible = true;
+
+	printLog();
 
 
 
@@ -310,7 +342,8 @@ function RandomIconPlacer()
 		var epsFile = File(exportDest + "/" + exportName + ".eps");
 
 		//export the jpg at 500ppi full quality
-		app.doScript("Export_JPG", "Export_JPG");
+		// app.doScript("Export_JPG", "Export_JPG");
+		exportJPG();
 
 		//save the EPS file
 		docRef.saveAs(epsFile,EPS_OPTS);
@@ -327,16 +360,22 @@ function RandomIconPlacer()
 	function updateFileName(newName)
 	{
 		var docName = docRef.name.replace(".ai","");
+		log("updateFileName: docName = " + docName);
 		var files = exportDest.getFiles();
+		log("files.length = " + files.length);
 		for(var x=0,len=files.length;x<len;x++)
 		{
 			if(files[x].name.indexOf("-01")>-1)
 			{
+				log("found -01 : " + files[x].name);
 				files[x].rename(files[x].name.replace("-01",""));
+				log("renamed file. result = " + files[x].name);
 			}
 			if(files[x].name.indexOf(docName)>-1 && files[x].name.indexOf(".jpg")>-1)
 			{
+				log("found a file matching the doc name: " + files[x].name);
 				files[x].rename(newName + ".jpg");
+				log("renamed file. result = " + files[x].name);
 			}
 		}
 	}
@@ -350,18 +389,7 @@ function RandomIconPlacer()
 		}
 		var expFileFolder,expFile,homeFolder;
 
-		if($.os.match('Windows'))
-		{
-			homeFolder = Folder("C:/Program%20Files/");
-			expFileFolder = Folder("C:/Program%20Files/Adobe_Helpers/");
-			var user = $.getenv("USERNAME")
-		}
-		else
-		{
-			homeFolder = Folder("~");
-			expFileFolder = Folder("~/Documents/Adobe_Helpers");
-			var user = $.getenv("USER")
-		}
+		
 
 		if(!expFileFolder.exists)
 		{
@@ -604,13 +632,22 @@ function RandomIconPlacer()
 
 		try
 		{
-			randomSwatchGroup = docRef.swatchGroups["Random_Color_Group"];
+			docRef.swatchGroups["Random_Color_Group"].remove();
+			randomSwatchGroup = docRef.swatchGroups.add();
+			randomSwatchGroup.name = "Random_Color_Group";
 		}
 		catch(e)
 		{
 			randomSwatchGroup = docRef.swatchGroups.add();
 			randomSwatchGroup.name = "Random_Color_Group";
 		}
+
+		// var existingRandomSwatches = randomSwatchGroup.getAllSwatches();
+
+		// for(var x=existingRandomSwatches.length-1;x>=0;x--)
+		// {
+		// 	existingRandomSwatches
+		// }
 
 		for(var x=0;x<num;x++)
 		{
@@ -636,7 +673,7 @@ function RandomIconPlacer()
 		}
 	}
 
-	function loadExportAction()	
+	function exportJPG()	
 	{
 		String.prototype.hexEncode = function()
 		{
@@ -652,10 +689,20 @@ function RandomIconPlacer()
 
 		function writeFile(fileDestStr, contents)
 		{
-			var newFile = File(fileDestStr);
-			newFile.open('w');
-			newFile.write(contents);
-			newFile.close();
+			log("writing actionFile: fileDestStr = " + fileDestStr);
+			// var newFile = File(fileDestStr);
+			actionFile = File(fileDestStr);
+			if(actionFile.exists)
+			{
+				log("removed existing action file.");
+				actionFile.remove();
+			}
+			actionFile = new File(fileDestStr);
+			log("created new action file. actionFile.exists = " + actionFile.exists);
+			actionFile.open('w');
+			actionFile.write(contents);
+			actionFile.close();
+			log("wrote action file.");
 		};
 
 
@@ -663,87 +710,89 @@ function RandomIconPlacer()
 			
 			"/version 3",
 			"/name [ 10",
-			"	4578706f72745f4a5047",
+				"4578706f72745f4a5047",
 			"]",
-			"/isOpen 1",
+			"/isOpen 0",
 			"/actionCount 1",
 			"/action-1 {",
-			"	/name [ 10",
-			"		4578706f72745f4a5047",
-			"	]",
-			"	/keyIndex 0",
-			"	/colorIndex 0",
-			"	/isOpen 1",
-			"	/eventCount 1",
-			"	/event-1 {",
-			"		/useRulersIn1stQuadrant 0",
-			"		/internalName (adobe_exportDocument)",
-			"		/localizedName [ 9",
-			"			4578706f7274204173",
-			"		]",
-			"		/isOpen 0",
-			"		/isOn 1",
-			"		/hasDialog 1",
-			"		/showDialog 0",
-			"		/parameterCount 7",
-			"		/parameter-1 {",
-			"			/key 1885434477",
-			"			/showInPalette 0",
-			"			/type (raw)",
-			"			/value < 100",
+				"/name [ 10",
+					"4578706f72745f4a5047",
+				"]",
+				"/keyIndex 0",
+				"/colorIndex 0",
+				"/isOpen 1",
+				"/eventCount 1",
+				"/event-1 {",
+					"/useRulersIn1stQuadrant 0",
+					"/internalName (adobe_exportDocument)",
+					"/localizedName [ 9",
+						"4578706f7274204173",
+					"]",
+					"/isOpen 0",
+					"/isOn 1",
+					"/hasDialog 1",
+					"/showDialog 0",
+					"/parameterCount 7",
+					"/parameter-1 {",
+						"/key 1885434477",
+						"/showInPalette 0",
+						"/type (raw)",
+						"/value < 104",
 							"0a0000000100000003000000030000000000f401010000000000000001000000",
 							"69006d006100670065006d006100700000006d0070006c006100740065005f00",
 							"7600330000000000000000000000000000000000000000000000000000000000",
-			"				00000100",
-			"			>",
-			"			/size 100",
-			"		}",
-			"		/parameter-2 {",
-			"			/key 1851878757",
-			"			/showInPalette 4294967295",
-			"			/type (ustring)",
-			"			/value [ PUT_FOLDERPATH_CHAR_LENGTH_HERE",
-			"				PUT_HEX_FOLDERPATH_HERE",
-			"			]",
-			"		}",
-			"		/parameter-3 {",
-			"			/key 1718775156",
-			"			/showInPalette 4294967295",
-			"			/type (ustring)",
-			"			/value [ 16",
-			"				4a5045472066696c6520666f726d6174",
-			"			]",
-			"		}",
-			"		/parameter-4 {",
-			"			/key 1702392942",
-			"			/showInPalette 4294967295",
-			"			/type (ustring)",
-			"			/value [ 12",
-			"				6a70672c6a70652c6a706567",
-			"			]",
-			"		}",
-			"		/parameter-5 {",
-			"			/key 1936548194",
-			"			/showInPalette 4294967295",
-			"			/type (boolean)",
-			"			/value 1",
-			"		}",
-			"		/parameter-6 {",
-			"			/key 1935764588",
-			"			/showInPalette 4294967295",
-			"			/type (boolean)",
-			"			/value 1",
-			"		}",
-			"		/parameter-7 {",
-			"			/key 1936875886",
-			"			/showInPalette 4294967295",
-			"			/type (ustring)",
-			"			/value [ 0",
-			"",
-			"			]",
-			"		}",
-			"	}",
-			"}"
+							"0000000001000000",
+						">",
+						"/size 104",
+					"}",
+					"/parameter-2 {",
+						"/key 1851878757",
+						"/showInPalette -1",
+						"/type (ustring)",
+						"/value [ PUT_FOLDERPATH_CHAR_LENGTH_HERE",
+							"PUT_HEX_FOLDERPATH_HERE",
+						"]",
+					"}",
+					"/parameter-3 {",
+						"/key 1718775156",
+						"/showInPalette -1",
+						"/type (ustring)",
+						"/value [ 16",
+							"4a5045472066696c6520666f726d6174",
+						"]",
+					"}",
+					"/parameter-4 {",
+						"/key 1702392942",
+						"/showInPalette -1",
+						"/type (ustring)",
+						"/value [ 12",
+							"6a70672c6a70652c6a706567",
+						"]",
+					"}",
+					"/parameter-5 {",
+						"/key 1936548194",
+						"/showInPalette -1",
+						"/type (boolean)",
+						"/value 1",
+					"}",
+					"/parameter-6 {",
+						"/key 1935764588",
+						"/showInPalette -1",
+						"/type (boolean)",
+						"/value 1",
+					"}",
+					"/parameter-7 {",
+						"/key 1936875886",
+						"/showInPalette -1",
+						"/type (ustring)",
+						"/value [ 1",
+							"31",
+						"]",
+					"}",
+				"}",
+			"}",
+
+
 
 		].join("\n");
 
@@ -752,17 +801,31 @@ function RandomIconPlacer()
 		writeFile(actionFileDestStr, actionStr.replace("PUT_FOLDERPATH_CHAR_LENGTH_HERE", destStr.length).replace("PUT_HEX_FOLDERPATH_HERE", destStr.hexEncode()));
 		
 		app.loadAction(actionFile);
+		app.doScript("Export_JPG","Export_JPG");
+		app.unloadAction("Export_JPG","");
 	}
 	
 
-	function unloadExportAction()
+	// function unloadExportAction()
+	// {
+	// 	//clean up  
+	// 	actionFile.remove();
+	// 	app.unloadAction("Export_JPG", '');
+	// }
+
+
+	function log(msg)
 	{
-		//clean up  
-		actionFile.remove();
-		app.unloadAction("Export_JPG", '');
+		logTxt += msg + "\n";
 	}
-
 	
+	function printLog()
+	{
+		logFile.open("w");
+		logFile.write(logTxt);
+		logFile.close();
+		// alert("log:\n" + logTxt);
+	}
 
 	function sendErrors(errorList)
 	{
