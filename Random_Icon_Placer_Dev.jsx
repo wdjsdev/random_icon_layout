@@ -11,7 +11,7 @@ function RandomIconPlacer()
 	var errorItems = [];
 
 	//check to make sure the script is not expired
-	var expDate = new Date("May 27 2018 12:30");
+	var expDate = new Date("May 25 2018 12:30");
 	if(isExp(expDate))
 	{
 		return false;
@@ -97,15 +97,19 @@ function RandomIconPlacer()
 
 	// loadExportAction();
 
+	convertIconsToCompoundPaths();
+
 	getInitialIconProperties();
 
 	//actually do the work
 	for(var x=0,len=numOfOutputs;x<len;x++)
 	{
 		createRandomArrangement(x);
+		exportThisCombo();
+		exportLayer.pageItems[0].remove();
 	}
 
-	exportGroups();
+	// exportGroups();
 
 	// unloadExportAction();
 
@@ -324,19 +328,23 @@ function RandomIconPlacer()
 		return dest;
 	}
 
-	function exportGroups()
-	{
-		var len = exportLayer.groupItems.length;
-		for(var x=0;x<len;x++)
-		{
-			exportThisCombo(x);	
-		}
-	}
+	//deprecated because adding all the groups
+	//at the beginning created files that were too large.
+	//i will simply use the exportThisCombo function
+	//to export the only group on the exportLayer.
+	// function exportGroups()
+	// {
+	// 	var len = exportLayer.groupItems.length;
+	// 	for(var x=0;x<len;x++)
+	// 	{
+	// 		exportThisCombo(x);	
+	// 	}
+	// }
 
-	function exportThisCombo(groupNum)
+	function exportThisCombo()
 	{
 
-		var curGroup = exportLayer.pageItems[groupNum];
+		var curGroup = exportLayer.pageItems[0];
 		var exportName = curGroup.name;
 		curGroup.hidden = false;
 		var epsFile = File(exportDest + "/" + exportName + ".eps");
@@ -812,6 +820,35 @@ function RandomIconPlacer()
 	// 	actionFile.remove();
 	// 	app.unloadAction("Export_JPG", '');
 	// }
+
+	function convertIconsToCompoundPaths()
+	{
+		//convert the icons on the icons layer
+		for(var x=0,len=iconLayer.pageItems.length;x<len;x++)
+		{
+			docRef.selection = null;
+			iconLayer.pageItems[x].selected = true;
+			app.executeMenuCommand("noCompoundPath");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("compoundPath")
+		}
+
+		//convert the icons on the initial setup layer
+		for(var x=0,len=initLayer.pageItems.length;x<len;x++)
+		{
+			docRef.selection = null;
+			initLayer.pageItems[x].selected = true;
+			app.executeMenuCommand("noCompoundPath");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("ungroup");
+			app.executeMenuCommand("compoundPath")
+		}
+	}
 
 
 	function log(msg)
